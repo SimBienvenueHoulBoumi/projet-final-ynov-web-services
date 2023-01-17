@@ -3,12 +3,14 @@ const helmet = require('helmet'); // Configure HTTP Headers
 const bodyParser = require('body-parser'); // Parse the body in an object req.body
 const mongoose = require('mongoose'); // Database
 const compression = require('compression'); // Compression for quick server response
+const cors = require('cors');
 
 require('dotenv').config()
 
 const app = express();
 app.use(helmet());
 app.use(compression());
+app.use(cors());
 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
