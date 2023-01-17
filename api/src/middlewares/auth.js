@@ -1,22 +1,31 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
-module.exports = (req, res, next) => {
-    try {
-        const email = req.headers.email;
-        const token = req.headers.authorization;
-        const decodeToken = jwt.verify(token, 'RANDOM_TOKEN_SECRET')
+const SECRET_KEY = process.env.SECRET_KEY;
+const UNAUTHORIZED_MSG = "UNAUTHORIZED";
 
-        User.findById(decodeToken.userId)
-            .then((user) => {
-                if(email == user.email){
-                    next();
-                }else{
-                    res.status(403).json({message: `UNAUTHORIEZD 1`})
-                }
-            })
-            .catch(() => res.status(403).json({message: `UNAUTHORIEZD 2`}))
-    } catch{
-        res.status(403).json({message: `UNAUTHORIZED 3`})
+module.exports = async(req, res, next) => {
+    try {
+        const token = req.headers.authorization;
+        const decodedToken = jwt.verify(token, SECRET_KEY);
+
+        const user = await User.findOne({_id : decodedToken.userId});
+    if(!user){
+      throw new Error(UNAUTHORIZED_MSG);
     }
-}
+    req.user = user;
+    next();
+  } catch (error) {
+    if(error.message === UNAUTHORIZED_MSG){
+      res.status(401).json({ message: 'You are not authenticated.' });
+    }
+    else if(error instanceof jwt.TokenExpiredError || error instanceof jwt.JsonWebTokenError){
+      res.status(401).json({ message: 'Token expired or invalid' });
+    }else{
+      res.status(500).json({ message: 'Server Error' });
+    }
+  }
+};
+
+
+

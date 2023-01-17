@@ -7,6 +7,8 @@ const CLIENT_ID = process.env.CLIENT_ID;
 
 const client = new OAuth2Client(CLIENT_ID);
 
+const SECRET_KEY = process.env.SECRET_KEY;
+
 async function verify(token, req, res) {
   const ticket = await client.verifyIdToken({
       idToken: token,
@@ -16,21 +18,19 @@ async function verify(token, req, res) {
 //  const userid = payload['sub'];
 //  const userid = payload.sub;
 
-  console.log(payload);
-
   User.findOne({email: payload.email})
     .then((user) => {
         if (!user) {
             // create user
             req.body.email = payload.email;
-            req.body.name = payload.name;
+            req.body.username = payload.username;
             req.body.password = payload.sub + new Date().getTime();
             bcrypt.hash(req.body.password, 10)
                     .then((hash) => {
                         let user = new User({
                                 email: req.body.email,
                                 password: hash,
-                                name: req.body.name,
+                                username: req.body.username,
                                 creationDate: new Date(),
                                 modificationDate: new Date(),
                                 active: true
@@ -42,7 +42,7 @@ async function verify(token, req, res) {
                     })
                     .catch(() => res.status(500).json({message: 'API REST ERROR: Pb avec le chiffrement'}))
         } else {
-            const token = jwt.sign({userId: user._id},'RANDOM_TOKEN_SECRET', { expiresIn: '24h'});
+            const token = jwt.sign({userId: user._id}, SECRET_KEY, { expiresIn: '24h'});
             user.password = '';
 //            user.name = payload.name;
             res.status(200).json({
@@ -79,7 +79,7 @@ exports.createUser = (req, res, next) => {
               let user = new User({
                    email: req.body.email,
                    password: hash,
-                   name: req.body.name,
+                   username: req.body.username,
                    creationDate: new Date(),
                    modificationDate: new Date(),
                    active: true
@@ -106,9 +106,9 @@ exports.login = (req, res, next) => {
                     bcrypt.compare(req.body.password, user.password)
                           .then((valid) => {
                             if(!valid){
-                                res.status(500).json({message: 'API REST ERROR: COMPARAISON FAILED'})
+                                res.status(500).json({message: `PASSWORD NOT VALID`})
                             }else{
-                                const token = jwt.sign({userId: user._id}, 'RAMDOM_TOKEN_SECRET', { expiresIn: '24h'});
+                                const token = jwt.sign({userId: user._id}, SECRET_KEY, { expiresIn: '24h'});
                                 user.password = '';
                                 res.status(200).json({
                                     token: token,
@@ -116,7 +116,7 @@ exports.login = (req, res, next) => {
                                 })
                             }
                           })
-                          .catch((err) => res.status(500).json({message: `API REST ERROR: COMPARAISON FAILED`}))
+                          .catch((err) => res.status(500).json({message: `PASSWORD NOT VALID`}))
                 }
             })
             .catch(() => res.status(404).json({message: `NOT FOUND`}))

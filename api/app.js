@@ -42,6 +42,6 @@ app.use(bodyParser.json());
 
 const userRoutes = require('./src/routes/user');
 
-app.use('/api/auth', userRoutes);
+app.use('/api/v1/auth/user', userRoutes);
 
 module.exports = app;
